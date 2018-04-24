@@ -1,3 +1,8 @@
+/*
+ *	author: 秋
+ * 	v 1.1
+ */
+
 $.fn.dragRC = function(options) {
 
 	var defaults = {
@@ -15,121 +20,116 @@ $.fn.dragRC = function(options) {
 
 		let self = this;
 
-		var index = $(self).index();
+		var cur_index = $(self).index();
 		var $leng = $(_col_selector + " thead").find("th").length;
 
-		if (index == 0) {
+		if (cur_index == 0) {
 			return;
 		}
 
-		let wd = $(self).width();
-		let hg = $(self).height();
+		//当前拖动元素的宽、高、顶部及左边距
+		let cur_th_width = $(self).width();
+		let cur_th_height = $(self).height();
 		
-		let tp = $(self).offset().top;
-		let lf = $(self).offset().left;
+		let cur_th_top = $(self).offset().top;
+		let cur_th_left = $(self).offset().left;
 
-		let txt = $(self).html();
+		let cur_th_text = $(self).html();
 
 		$(self).html("");
 
-		$(self).css({
-			"width" : wd
-		});
+		//将被元素的宽度固定为原始宽度，则否置空后会变形
+		// $(self).css({
+		// 	"width" : th_width + "px"
+		// });
 
 		$("body").append("<div class='temp' id='temp0'></div>");
 		
 		$("#temp0").css({
-			"height" : hg,
-			"line-height" : hg + "px",
-			"left" : lf,
-			"top" : tp
+			"height" : cur_th_height,
+			"line-height" : cur_th_height + "px",
+			"top" : cur_th_top
 		});
 
-		$("#temp0").html(txt);
+		$("#temp0").html(cur_th_text);
 
 		$(_col_selector + " tbody tr").each(function(i) {
-			let tt = $("." + settings.column_class + " tbody tr:eq(" + i + ") td:eq(" + index + ")");
 
-			let ttp = tt.offset().top;
-			let ttf = tt.offset().left;
-			let thg = tt.height();
+			let temp_td = $("." + settings.column_class + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")");
 
-			let ttxt = tt.html();
+			let cur_td_top = temp_td.offset().top;
+			let cur_td_height = temp_td.height();
+			let cur_td_html = temp_td.html();
 
-			tt.html("");
+			temp_td.html("");
 
 			$("body").append("<div class='temp' id='temp" + (i + 1) + "'></div>");
 		
 			$("#temp" + (i + 1)).css({
-				"height" : thg,
-				"line-height" : thg + "px",
-				"top" : ttp,
-				"left" : ttf
+				"height" : cur_td_height,
+				"line-height" : cur_td_height + "px",
+				"top" : cur_td_top
 			});
 
-			$("#temp" + (i + 1)).html(ttxt);
+			$("#temp" + (i + 1)).html(cur_td_html);
 		});
 		
 		$(".temp").css({
 			"display" : "block",
 			"position" : "absolute",
-			"margin" : "auto",
 			"border" : "1px solid #aaa",
-			"width" : wd,
+			"width" : cur_th_width,
+			"left" : cur_th_left,
 			"background-color" : "#89a",
 			"opacity" : "0.7",
 			"text-align" : "center"
 		});
 
 		//鼠标点击处与单元格的左边距
-		var padX = e.pageX - lf;
+		var cur_th_padding_left = e.pageX - cur_th_left;
 
 		$(document).mousemove(function(e) {
 
-			let mx = e.pageX;
-			let x = mx - padX;
+			let cur_mouse_left = e.pageX;
+			let cur_div_left = cur_mouse_left - cur_th_padding_left;
 		
 			$(".temp").css({
-				"left" : x
+				"left" : cur_div_left
 			});
 
-			let id = _col_selector + " thead th:eq(" + index + ")";
-			let wdx = $(id).width();
-			let lfx = $(id).offset().left;
+			if (cur_div_left - cur_th_left >= cur_th_width / 2 && cur_index < ($leng - 1)) {
 
-			if (x >= (lfx + wdx / 2) && index < ($leng - 1)) {
-
-				$(id).before($(_col_selector + " thead th:eq(" + (index + 1) + ")").clone(true));
-				$(_col_selector + " thead th:eq(" + (index + 2) + ")").remove();
+				$(self).before($(_col_selector + " thead th:eq(" + (cur_index + 1) + ")").detach().clone(true));
 
 				$(_col_selector + " tbody tr").each(function(i) {
-					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + index + ")").before($(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (index + 1) + ")").clone(true));
-					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (index + 2) + ")").remove();
+					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")")
+					.before($(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (cur_index + 1) + ")").detach().clone(true));
 				});
 
-				index++;
-			} else if ((lfx - x) >= (wdx / 2) && index > 1) {
+				cur_th_left = cur_th_left + cur_th_width;
+				cur_index++;
+			} else if ((cur_th_left - cur_div_left) >= cur_th_width / 2 && cur_index > 1) {
 
-				let obj = $(_col_selector + " thead th:eq(" + (index - 1) + ")").clone(true);
-				$(_col_selector + " thead th:eq(" + index + ")").after(obj);
-				var oo = $(_col_selector + " thead th:eq(" + (index - 1) + ")").remove();
+				$(self).after($(_col_selector + " thead th:eq(" + (cur_index - 1) + ")").detach().clone(true));
 
 				$(_col_selector + " tbody tr").each(function(i) {
-					let ebj = $(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (index - 1) + ")").clone(true);
-					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + index + ")").after(ebj);
-					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (index - 1) + ")").remove();
+
+					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")")
+					.after($(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (cur_index - 1) + ")").detach().clone(true));
+
 				});
 
-				index--;
+				cur_th_left = cur_th_left - cur_th_width;
+				cur_index--;
 			}
 		});
 
 		$(document).mouseup(function(e) {
 		
-			$(_col_selector + " thead th:eq(" + index + ")").html($("#temp0").html());
+			$(_col_selector + " thead th:eq(" + cur_index + ")").html($("#temp0").html());
 
 			$(_col_selector + " tbody tr").each(function(i) {
-				$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + index + ")").html($("#temp" + (i + 1)).html());
+				$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")").html($("#temp" + (i + 1)).html());
 			});
 
 			$(self).removeAttr("style");
@@ -185,7 +185,7 @@ $.fn.dragRC = function(options) {
 				$("#tempc" + i).css({
 					"margin-top" : "1px",
 					"text-align" : "center",
-					"border" : "1px green solid",
+					"border" : "1px #aaa solid",
 					"width" : wdth,
 					"vertical-align" : "middle",
 					"height" : high
