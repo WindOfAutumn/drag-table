@@ -1,234 +1,295 @@
 /*
- *	author: 秋
- * 	v 1.1
+ *	@author : autumn
+ *	@version : 1.2
+ *	@desc : 面向对象版本；参数说明：是否允许行列的拖拽，默认都为false; 拖拽行或列时是否让几行或列固定不动，默认无固定行列
+ * 	注：此版本的行暂时仅可固定第一行，其他功能尚未实现
  */
 
-$.fn.dragRC = function(options) {
+;(function($, window, document, undefined) {
 
-	var defaults = {
-		"column_class" : "drag-table-column",
-		"row_class" : "drag-table-row"
-	};
+	var DragRowCol = function(ele, options) {
 
-	var settings = $.extend({}, defaults, options);
+		this.$ele = ele;
 
-	//ID字符串
-	let _col_selector = "." + settings.column_class;
-	let _row_selector = "." + settings.row_class;
-
-	$(_col_selector + " thead th").mousedown(function(e) {
-
-		let self = this;
-
-		var cur_index = $(self).index();
-		var $leng = $(_col_selector + " thead").find("th").length;
-
-		if (cur_index == 0) {
-			return;
+		this.defaults = {
+			"dragcol" : false,
+			"dragrow" : false,
+			"fixcol" : undefined,
+			"fixrow" : undefined
 		}
 
-		//当前拖动元素的宽、高、顶部及左边距
-		let cur_th_width = $(self).width();
-		let cur_th_height = $(self).height();
-		
-		let cur_th_top = $(self).offset().top;
-		let cur_th_left = $(self).offset().left;
+		this.settings = $.extend({}, this.defaults, options);
+	};
 
-		let cur_th_text = $(self).html();
 
-		$(self).html("");
+	DragRowCol.prototype = {
 
-		//将被元素的宽度固定为原始宽度，则否置空后会变形
-		// $(self).css({
-		// 	"width" : th_width + "px"
-		// });
+		// 拖动列
+		dragColumn : function() {
 
-		$("body").append("<div class='temp' id='temp0'></div>");
-		
-		$("#temp0").css({
-			"height" : cur_th_height,
-			"line-height" : cur_th_height + "px",
-			"top" : cur_th_top
-		});
+			let _ele = this.$ele;
 
-		$("#temp0").html(cur_th_text);
+			let _fixcol = this.settings.fixcol;
 
-		$(_col_selector + " tbody tr").each(function(i) {
+			let $len = _ele.find("th").length;
 
-			let temp_td = $("." + settings.column_class + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")");
+			let _start;
 
-			let cur_td_top = temp_td.offset().top;
-			let cur_td_height = temp_td.height();
-			let cur_td_html = temp_td.html();
-
-			temp_td.html("");
-
-			$("body").append("<div class='temp' id='temp" + (i + 1) + "'></div>");
-		
-			$("#temp" + (i + 1)).css({
-				"height" : cur_td_height,
-				"line-height" : cur_td_height + "px",
-				"top" : cur_td_top
-			});
-
-			$("#temp" + (i + 1)).html(cur_td_html);
-		});
-		
-		$(".temp").css({
-			"display" : "block",
-			"position" : "absolute",
-			"border" : "1px solid #aaa",
-			"width" : cur_th_width,
-			"left" : cur_th_left,
-			"background-color" : "#89a",
-			"opacity" : "0.7",
-			"text-align" : "center"
-		});
-
-		//鼠标点击处与单元格的左边距
-		var cur_th_padding_left = e.pageX - cur_th_left;
-
-		$(document).mousemove(function(e) {
-
-			let cur_mouse_left = e.pageX;
-			let cur_div_left = cur_mouse_left - cur_th_padding_left;
-		
-			$(".temp").css({
-				"left" : cur_div_left
-			});
-
-			if (cur_div_left - cur_th_left >= cur_th_width / 2 && cur_index < ($leng - 1)) {
-
-				$(self).before($(_col_selector + " thead th:eq(" + (cur_index + 1) + ")").detach().clone(true));
-
-				$(_col_selector + " tbody tr").each(function(i) {
-					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")")
-					.before($(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (cur_index + 1) + ")").detach().clone(true));
-				});
-
-				cur_th_left = cur_th_left + cur_th_width;
-				cur_index++;
-			} else if ((cur_th_left - cur_div_left) >= cur_th_width / 2 && cur_index > 1) {
-
-				$(self).after($(_col_selector + " thead th:eq(" + (cur_index - 1) + ")").detach().clone(true));
-
-				$(_col_selector + " tbody tr").each(function(i) {
-
-					$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")")
-					.after($(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + (cur_index - 1) + ")").detach().clone(true));
-
-				});
-
-				cur_th_left = cur_th_left - cur_th_width;
-				cur_index--;
+			if (_fixcol === undefined) {
+				_start = 0;
+			} else {
+				_start = _fixcol + 1;
 			}
-		});
 
-		$(document).mouseup(function(e) {
-		
-			$(_col_selector + " thead th:eq(" + cur_index + ")").html($("#temp0").html());
+			_ele.find("th").mousedown(function(_downe) {
 
-			$(_col_selector + " tbody tr").each(function(i) {
-				$(_col_selector + " tbody tr:eq(" + i + ") td:eq(" + cur_index + ")").html($("#temp" + (i + 1)).html());
-			});
+				let self = $(this);
 
-			$(self).removeAttr("style");
+				let cur_index = self.index();
 
-			$(".temp").remove();
-
-			$(document).unbind("mousemove");
-			$(document).unbind("mousedown");
-			$(document).unbind("mouseup");
-		});
-	});	
-
-
-	$(_row_selector + " tbody tr").each(function(i) {
-
-		let hih = $(this).height();
-		var curIndex = i;
-		var len;
-
-		$(_row_selector + " tbody tr:eq(" + i + ") td:eq(0)").mousedown(function(e) {
-
-			$("body").append("<tr id='temp-row'></tr>");
-			let prt = $(this).parent();
-			let trwth = prt.width();
-			let trhgt = prt.height() - 1;
-			let lef = prt.offset().left;
-			let ptp = prt.offset().top;
-
-			curIndex = $(this).parent().index();
-
-			$("#temp-row").css({
-				"position" : "absolute",
-				"left" : lef,
-				"top" : ptp,
-				"display" : "block",
-				"margin-left" : "-1px",
-				"border" : "1px #aaa solid",
-				"background-color" : "#89a",
-				"opacity" : "0.7",
-				"width" : trwth,
-				"height" : trhgt
-			});
-			$(_row_selector + " tbody tr:eq(" + curIndex + ") td").each(function(i, t) {
-				let wdth = $(t).width();
-				let high = $(t).height();
-				let cont = $(t).html();
-				len = $(_row_selector + " tbody tr").length;
-
-				$(t).html("");
-				$(t).css("height", high);
-
-				$("#temp-row").append("<td id='tempc" + i + "'></td>");
-				$("#tempc" + i).css({
-					"margin-top" : "1px",
-					"text-align" : "center",
-					"border" : "1px #aaa solid",
-					"width" : wdth,
-					"vertical-align" : "middle",
-					"height" : high
-				});
-				$("#tempc" + i).html(cont);
-			});
-
-			var pdx = e.pageY - ptp;
-			var curTop = ptp;
-			$(document).mousemove(function(e) {
-
-				var vIndx = (e.pageY - ptp) / (1.2 * hih);
-				if (vIndx >= 1 && curIndex < len - 1) {
-					$(_row_selector + " tbody tr:eq(" + curIndex + ")").before($(_row_selector + " tbody tr:eq(" + (curIndex + 1) + ")").detach().clone(true));
-					curIndex++;
-					ptp = ptp + hih;
-				} else if (vIndx <= -0.27 && curIndex > 0) {
-		
-					$(_row_selector + " tbody tr:eq(" + curIndex + ")").after($(_row_selector + " tbody tr:eq(" + (curIndex - 1) + ")").detach().clone(true));
-					curIndex--;
-					ptp = ptp - hih;
+				if (cur_index <= _fixcol) {
+					return;
 				}
 
-				let rowy = e.pageY - pdx;
+				//当前拖动元素的宽、高、顶部及左边距
+				let cur_th_width = self.width();
+				let cur_th_height = self.height();
+				let cur_th_top = self.offset().top;
+				let cur_th_left = self.offset().left;
+				let cur_th_text = self.html();
+
+				self.html("");
+
+				$("body").append("<div class='temp' id='temp0'></div>");
+				
+				$("#temp0").css({
+					"height" : cur_th_height,
+					"line-height" : cur_th_height + "px",
+					"top" : cur_th_top
+				});
+
+				$("#temp0").html(cur_th_text);
+
+				_ele.find("tr").each(function(i, c) {
+
+					if (i == 0) {
+						return true;
+					}
+
+					let temp_td = $(c).find("td:eq(" + cur_index + ")");
+
+					let cur_td_top = temp_td.offset().top;
+					let cur_td_height = temp_td.height();
+					let cur_td_html = temp_td.html();
+
+					temp_td.html("");
+
+					$("body").append("<div class='temp' id='temp" + i + "'></div>");
+				
+					$("#temp" + i).css({
+						"height" : cur_td_height,
+						"line-height" : cur_td_height + "px",
+						"top" : cur_td_top
+					});
+
+					$("#temp" + i).html(cur_td_html);
+				});
+				
+				$(".temp").css({
+					"display" : "block",
+					"position" : "absolute",
+					"border" : "1px solid #aaa",
+					"width" : cur_th_width,
+					"left" : cur_th_left,
+					"background-color" : "#89a",
+					"opacity" : "0.7",
+					"text-align" : "center"
+				});
+
+				//鼠标点击处与单元格的左边距
+				var cur_th_padding_left = _downe.pageX - cur_th_left;
+
+				$(document).mousemove(function(_movee) {
+
+					let cur_mouse_left = _movee.pageX;
+					let cur_div_left = cur_mouse_left - cur_th_padding_left;
+				
+					$(".temp").css({
+						"left" : cur_div_left
+					});
+
+					if (cur_div_left - cur_th_left >= cur_th_width / 2 && cur_index < ($len - 1)) {
+
+						self.before(_ele.find("th:eq(" + (cur_index + 1) + ")").detach().clone(true));
+
+						_ele.find("tr").each(function(i, t) {
+							if (i == 0) {return true;}
+							$(t).find("td:eq(" + cur_index + ")")
+							.before($(t).find("td:eq(" + (cur_index + 1) + ")").detach().clone(true));
+						});
+
+						cur_th_left = cur_th_left + cur_th_width;
+						cur_index++;
+					} else if ((cur_th_left - cur_div_left) >= cur_th_width / 2 && cur_index > _start) {
+
+						self.after(_ele.find("th:eq(" + (cur_index - 1) + ")").detach().clone(true));
+
+						_ele.find("tr").each(function(i, t) {
+							if (i == 0) {return true;}
+							$(t).find("td:eq(" + cur_index + ")")
+							.after($(t).find("td:eq(" + (cur_index - 1) + ")").detach().clone(true));
+
+						});
+
+						cur_th_left = cur_th_left - cur_th_width;
+						cur_index--;
+					}
+				});
+
+				$(document).mouseup(function(_upe) {
 		
-				$("#temp-row").css({
-					"top" : rowy
+					self.html($("#temp0").html());
+
+					_ele.find("tr").each(function(i, u) {
+						if (i == 0) {return true;}
+						$(u).find("td:eq(" + cur_index + ")").html($("#temp" + i).html());
+					});
+
+					self.removeAttr("style");
+
+					$(".temp").remove();
+
+					$(document).unbind("mousemove");
+					$(document).unbind("mousedown");
+					$(document).unbind("mouseup");
 				});
+
 			});
 
+		},
 
-			$(document).mouseup(function(e) {
+		// 拖动行
+		dragRow : function() {
 
-				$(_row_selector + " tbody tr:eq(" + curIndex + ") td").each(function(i, c) {
-					$(c).html($("#tempc" + i).html());
+			let _ele = this.$ele;
+
+			let trs = _ele.find("tr:gt(0)").each(function(i, t) {
+
+				let cur_index = i;
+				let max_index = _ele.find("tr:last").index();
+
+				$(t).find("td:eq(0)").mousedown(function(e) {
+
+					let self = $(this);
+					let parent = self.parent();
+					let cur_tr_width = parent.width();
+					let cur_tr_height = parent.outerHeight(true);
+					let cur_tr_left = parent.offset().left;
+					let cur_tr_top = parent.offset().top;
+					
+					$("body").append("<tr id='temp-row'></tr>");
+
+					parent.find("td").each(function(i, t) {
+
+						let cell = $(t);
+						let cur_td_width = cell.width();
+						let cur_td_height = cell.height();
+						let cur_content = cell.html();
+
+						cell.html("");
+						cell.css("height", cur_td_height);
+
+						$("#temp-row").append("<td id='tempc" + i + "'></td>");
+						$("#tempc" + i).css({
+							"margin-top" : "1px",
+							"text-align" : "center",
+							"border" : "1px #aaa solid",
+							"width" : cur_td_width,
+							"vertical-align" : "middle",
+							"height" : cur_td_height
+						});
+						$("#tempc" + i).html(cur_content);
+					});
+
+					$("#temp-row").css({
+						"position" : "absolute",
+						"left" : cur_tr_left,
+						"top" : cur_tr_top,
+						"display" : "block",
+						// "margin-left" : "-1px",
+						"border" : "1px #aaa solid",
+						"background-color" : "#89a",
+						"opacity" : "0.7",
+						"width" : cur_tr_width,
+						"height" : cur_tr_height
+					});
+
+					$("#tempc0").css({
+						"background-color" : "#89a",
+						"opacity" : "0.7"
+					});
+
+					let cur_tr_padding_top = e.pageY - cur_tr_top;
+					// let curTop = cur_tr_top;
+
+					$(document).mousemove(function(e) {
+
+						let vIndx = (e.pageY - cur_tr_top) / (1.2 * cur_tr_height);
+
+						if (vIndx >= 1 && cur_index < max_index) {
+							parent.before(parent.next().detach().clone(true));
+							cur_index++;
+							cur_tr_top = cur_tr_top + cur_tr_height;
+						} else if (vIndx <= -0.27 && cur_index > 0) {
+				
+							parent.after(parent.prev().detach().clone(true));
+							cur_index--;
+							cur_tr_top = cur_tr_top - cur_tr_height;
+						}
+
+						let rowy = e.pageY - cur_tr_padding_top;
+				
+						$("#temp-row").css({
+							"top" : rowy
+						});
+					});
+
+					$(document).mouseup(function(e) {
+
+						parent.find("td").each(function(i, c) {
+							$(c).html($("#tempc" + i).html());
+						});
+
+						$("#temp-row").remove();
+
+						$(document).unbind("mousemove");
+						$(document).unbind("mousedown");
+						$(document).unbind("mouseup");
+					});
 				});
 
-				$("#temp-row").remove();
-
-				$(document).unbind("mousemove");
-				$(document).unbind("mousedown");
-				$(document).unbind("mouseup");
 			});
-		});
-	});
-}
+			
+		}
+
+	}
+
+	$.fn.drag = function(options) {
+
+		var dg = new DragRowCol(this, options);
+
+		if (dg.settings.dragcol){
+
+			dg.dragColumn();
+
+		}
+
+		if (dg.settings.dragrow) {
+
+			dg.dragRow();
+
+		}
+
+	}
+
+})(jQuery, window, document);
